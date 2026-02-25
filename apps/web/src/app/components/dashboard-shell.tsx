@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 const nav = [
@@ -7,7 +8,8 @@ const nav = [
   "/subscribers",
   "/segments",
   "/automations",
-  "/settings"
+  "/settings",
+  "/login"
 ];
 
 export function DashboardShell({ title, children }: { title: string; children: ReactNode }) {
@@ -20,9 +22,9 @@ export function DashboardShell({ title, children }: { title: string; children: R
         </div>
         <nav className="flex flex-wrap gap-2 text-xs text-slate-300">
           {nav.map((item) => (
-            <span key={item} className="rounded-md border border-slate-700 px-2 py-1">
+            <Link key={item} href={item} className="rounded-md border border-slate-700 px-2 py-1 hover:bg-slate-800">
               {item}
-            </span>
+            </Link>
           ))}
         </nav>
       </header>
