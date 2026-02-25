@@ -9,10 +9,9 @@
 3. Add repository secrets:
    - `NETLIFY_AUTH_TOKEN`
    - `NETLIFY_SITE_ID`
-   - `RENDER_STAGING_API_DEPLOY_HOOK`
-   - `RENDER_STAGING_WORKER_DEPLOY_HOOK`
-   - `RENDER_API_DEPLOY_HOOK`
-   - `RENDER_WORKER_DEPLOY_HOOK`
+   - `RENDER_API_KEY`
+   - `RENDER_STAGING_SERVICE_ID`
+   - `RENDER_PROD_SERVICE_ID`
 
 ## 2) Netlify setup (Next.js frontend)
 
@@ -48,8 +47,8 @@ Workflows included:
 
 Behavior:
 - CI builds API/web for PRs and pushes touching `pulsepress/**`.
-- Render workflow auto-deploys staging API/worker on `develop` pushes.
-- Render workflow deploys production API/worker only when manually triggered.
+- Render workflow auto-deploys staging service on `develop` pushes.
+- Render workflow deploys production service only when manually triggered.
 - Netlify workflow runs only manually and supports draft deploy before production publish.
 
 ## 5) First production checklist

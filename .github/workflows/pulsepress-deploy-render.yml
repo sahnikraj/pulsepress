@@ -17,18 +17,20 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger staging API deploy hook
+      - name: Trigger staging deploy
         if: ${{ github.event_name == 'push' || github.event.inputs.target_environment == 'staging' }}
-        run: curl -fsS -X POST "${{ secrets.RENDER_STAGING_API_DEPLOY_HOOK }}"
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            "https://api.render.com/v1/services/${{ secrets.RENDER_STAGING_SERVICE_ID }}/deploys" \
+            -d '{"clearCache":"do_not_clear"}'
 
-      - name: Trigger staging worker deploy hook
-        if: ${{ github.event_name == 'push' || github.event.inputs.target_environment == 'staging' }}
-        run: curl -fsS -X POST "${{ secrets.RENDER_STAGING_WORKER_DEPLOY_HOOK }}"
-
-      - name: Trigger production API deploy hook
+      - name: Trigger production deploy
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target_environment == 'production' }}
-        run: curl -fsS -X POST "${{ secrets.RENDER_API_DEPLOY_HOOK }}"
-
-      - name: Trigger production worker deploy hook
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target_environment == 'production' }}
-        run: curl -fsS -X POST "${{ secrets.RENDER_WORKER_DEPLOY_HOOK }}"
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            "https://api.render.com/v1/services/${{ secrets.RENDER_PROD_SERVICE_ID }}/deploys" \
+            -d '{"clearCache":"do_not_clear"}'
