@@ -1,5 +1,4 @@
 [build]
-  base = "pulsepress"
   command = "npm install && npm run build:web"
 
 [build.environment]
