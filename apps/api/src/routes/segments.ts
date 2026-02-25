@@ -10,6 +10,7 @@ export const segmentsRouter = Router({ mergeParams: true });
 segmentsRouter.use(requireAuth, requireSiteAccess);
 
 segmentsRouter.post("/", async (req, res) => {
+  const siteId = (req.params as { siteId: string }).siteId;
   const parsed = segmentSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ code: "VALIDATION_ERROR", message: parsed.error.message });
@@ -19,16 +20,17 @@ segmentsRouter.post("/", async (req, res) => {
     `INSERT INTO segments (id, website_id, name, rules_json)
      VALUES ($1,$2,$3,$4::jsonb)
      RETURNING *`,
-    [uuidv4(), req.params.siteId, parsed.data.name, JSON.stringify(parsed.data.rules)]
+    [uuidv4(), siteId, parsed.data.name, JSON.stringify(parsed.data.rules)]
   );
 
   return res.status(201).json(result.rows[0]);
 });
 
 segmentsRouter.get("/", async (req, res) => {
+  const siteId = (req.params as { siteId: string }).siteId;
   const result = await db.query(
     `SELECT * FROM segments WHERE website_id = $1 ORDER BY created_at DESC`,
-    [req.params.siteId]
+    [siteId]
   );
   return res.json({ items: result.rows });
 });

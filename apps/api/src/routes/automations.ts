@@ -10,6 +10,7 @@ export const automationsRouter = Router({ mergeParams: true });
 automationsRouter.use(requireAuth, requireSiteAccess);
 
 automationsRouter.post("/rss", async (req, res) => {
+  const siteId = (req.params as { siteId: string }).siteId;
   const feedUrl = req.body?.feedUrl;
   const autoSend = Boolean(req.body?.autoSend);
   if (!feedUrl) {
@@ -20,18 +21,19 @@ automationsRouter.post("/rss", async (req, res) => {
     `INSERT INTO automations (id, website_id, type, config_json, status)
      VALUES ($1,$2,'rss',$3::jsonb,'active')
      RETURNING *`,
-    [uuidv4(), req.params.siteId, JSON.stringify({ feedUrl, autoSend, intervalMinutes: 5 })]
+    [uuidv4(), siteId, JSON.stringify({ feedUrl, autoSend, intervalMinutes: 5 })]
   );
 
-  await rssQueue.add("poll-rss", { websiteId: req.params.siteId, automationId: automation.rows[0].id });
+  await rssQueue.add("poll-rss", { websiteId: siteId, automationId: automation.rows[0].id });
 
   return res.status(201).json(automation.rows[0]);
 });
 
 automationsRouter.get("/", async (req, res) => {
+  const siteId = (req.params as { siteId: string }).siteId;
   const result = await db.query(
     `SELECT * FROM automations WHERE website_id = $1 ORDER BY created_at DESC`,
-    [req.params.siteId]
+    [siteId]
   );
 
   return res.json({ items: result.rows });

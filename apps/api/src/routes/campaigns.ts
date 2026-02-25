@@ -12,6 +12,7 @@ export const campaignsRouter = Router({ mergeParams: true });
 campaignsRouter.use(requireAuth, requireSiteAccess);
 
 campaignsRouter.post("/", async (req, res) => {
+  const siteId = (req.params as any).siteId as string;
   const parsed = createCampaignSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ code: "VALIDATION_ERROR", message: parsed.error.message });
@@ -27,7 +28,7 @@ campaignsRouter.post("/", async (req, res) => {
      RETURNING *`,
     [
       uuidv4(),
-      req.params.siteId,
+      siteId,
       data.name,
       data.title,
       data.body,
@@ -46,6 +47,7 @@ campaignsRouter.post("/", async (req, res) => {
 });
 
 campaignsRouter.get("/", async (req, res) => {
+  const siteId = (req.params as any).siteId as string;
   const limit = Math.min(Number(req.query.limit ?? 20), 100);
   const cursor = req.query.cursor as string | undefined;
 
@@ -56,7 +58,7 @@ campaignsRouter.get("/", async (req, res) => {
        AND ($2::uuid IS NULL OR id < $2::uuid)
      ORDER BY created_at DESC
      LIMIT $3`,
-    [req.params.siteId, cursor ?? null, limit + 1]
+    [siteId, cursor ?? null, limit + 1]
   );
 
   const hasMore = result.rows.length > limit;
@@ -67,9 +69,10 @@ campaignsRouter.get("/", async (req, res) => {
 });
 
 campaignsRouter.get("/:campaignId", async (req, res) => {
+  const siteId = (req.params as any).siteId as string;
   const campaign = await db.query(
     `SELECT * FROM campaigns WHERE id = $1 AND website_id = $2`,
-    [req.params.campaignId, req.params.siteId]
+    [req.params.campaignId, siteId]
   );
 
   if (!campaign.rowCount) {
@@ -80,19 +83,21 @@ campaignsRouter.get("/:campaignId", async (req, res) => {
 });
 
 campaignsRouter.post("/:campaignId/send", async (req, res) => {
-  await enqueueCampaignSend(req.params.campaignId, req.params.siteId);
-  await emitCampaignWebhook(req.params.siteId, "campaign.queued", {
+  const siteId = (req.params as any).siteId as string;
+  await enqueueCampaignSend(req.params.campaignId, siteId);
+  await emitCampaignWebhook(siteId, "campaign.queued", {
     campaignId: req.params.campaignId,
-    websiteId: req.params.siteId
+    websiteId: siteId
   });
   return res.status(202).json({ status: "queued" });
 });
 
 campaignsRouter.post("/:campaignId/cancel", async (req, res) => {
-  await requestCancelCampaign(req.params.campaignId, req.params.siteId);
-  await emitCampaignWebhook(req.params.siteId, "campaign.canceled", {
+  const siteId = (req.params as any).siteId as string;
+  await requestCancelCampaign(req.params.campaignId, siteId);
+  await emitCampaignWebhook(siteId, "campaign.canceled", {
     campaignId: req.params.campaignId,
-    websiteId: req.params.siteId
+    websiteId: siteId
   });
   return res.status(202).json({ status: "cancel_requested" });
 });

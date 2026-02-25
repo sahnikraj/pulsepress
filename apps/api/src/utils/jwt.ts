@@ -3,11 +3,11 @@ import type { JwtUser } from "@pulsepress/shared";
 import { env } from "../config/env";
 
 export function signAccessToken(payload: JwtUser) {
-  return jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.jwtAccessTtl });
+  return jwt.sign(payload, env.jwtAccessSecret, { expiresIn: env.jwtAccessTtl as jwt.SignOptions["expiresIn"] });
 }
 
 export function signRefreshToken(payload: JwtUser) {
-  return jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.jwtRefreshTtl });
+  return jwt.sign(payload, env.jwtRefreshSecret, { expiresIn: env.jwtRefreshTtl as jwt.SignOptions["expiresIn"] });
 }
 
 export function verifyAccessToken(token: string): JwtUser {
