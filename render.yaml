@@ -1,0 +1,79 @@
+services:
+  - type: web
+    name: pulsepress-api
+    runtime: node
+    rootDir: pulsepress
+    buildCommand: npm install && npm run build:api
+    startCommand: npm run start:api
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: WEB_ORIGIN
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pulsepress-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: pulsepress-redis
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_TTL
+        value: 15m
+      - key: JWT_REFRESH_TTL
+        value: 30d
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: RATE_LIMIT_PUBLIC_RPM
+        value: 120
+      - key: DEFAULT_RSS_POLL_MINUTES
+        value: 5
+
+  - type: worker
+    name: pulsepress-workers
+    runtime: node
+    rootDir: pulsepress
+    buildCommand: npm install && npm run build:api
+    startCommand: npm run start:workers
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pulsepress-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: pulsepress-redis
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_ACCESS_TTL
+        value: 15m
+      - key: JWT_REFRESH_TTL
+        value: 30d
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: DEFAULT_RSS_POLL_MINUTES
+        value: 5
+
+  - type: redis
+    name: pulsepress-redis
+    ipAllowList: []
+
+
+databases:
+  - name: pulsepress-db
+    databaseName: pulsepress
+    user: pulsepress

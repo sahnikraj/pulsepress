@@ -1,0 +1,34 @@
+name: Deploy PulsePress API/Workers (Render)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: "staging or production"
+        required: true
+        default: "staging"
+  push:
+    branches: ["develop"]
+    paths:
+      - "pulsepress/**"
+      - ".github/workflows/pulsepress-deploy-render.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger staging API deploy hook
+        if: ${{ github.event_name == 'push' || github.event.inputs.target_environment == 'staging' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_STAGING_API_DEPLOY_HOOK }}"
+
+      - name: Trigger staging worker deploy hook
+        if: ${{ github.event_name == 'push' || github.event.inputs.target_environment == 'staging' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_STAGING_WORKER_DEPLOY_HOOK }}"
+
+      - name: Trigger production API deploy hook
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target_environment == 'production' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_API_DEPLOY_HOOK }}"
+
+      - name: Trigger production worker deploy hook
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target_environment == 'production' }}
+        run: curl -fsS -X POST "${{ secrets.RENDER_WORKER_DEPLOY_HOOK }}"

@@ -1,0 +1,26 @@
+{
+  "name": "pulsepress",
+  "private": true,
+  "version": "0.1.0",
+  "devDependencies": {
+    "@netlify/plugin-nextjs": "^5.10.0"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run -ws build",
+    "build:api": "npm run build -w @pulsepress/shared && npm run build -w @pulsepress/api",
+    "build:web": "npm run build -w @pulsepress/web",
+    "dev": "npm run -ws dev",
+    "dev:api": "npm run dev -w @pulsepress/api",
+    "dev:web": "npm run dev -w @pulsepress/web",
+    "dev:workers": "npm run dev:workers -w @pulsepress/api",
+    "lint": "npm run -ws lint",
+    "start:api": "npm run start -w @pulsepress/api",
+    "start:workers": "npm run start:workers -w @pulsepress/api",
+    "start:web": "npm run start -w @pulsepress/web",
+    "test": "npm run -ws test"
+  }
+}
