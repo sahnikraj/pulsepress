@@ -11,7 +11,7 @@ type Site = {
   id: string;
   name: string;
   domain: string;
-  vapid_public_key: string;
+  vapid_public_key?: string;
 };
 
 function buildHeaderScript(site: Site, prePromptTitle: string, buttonLabel: string) {
@@ -19,7 +19,7 @@ function buildHeaderScript(site: Site, prePromptTitle: string, buttonLabel: stri
 (function() {
   const siteId = "${site.id}";
   const apiBase = "${API_BASE_URL}";
-  const vapidPublicKey = "${site.vapid_public_key}";
+  const vapidPublicKey = "${site.vapid_public_key ?? ""}";
 
   function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);

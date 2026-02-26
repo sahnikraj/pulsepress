@@ -22,6 +22,23 @@ async function request(path: string, init?: RequestInit) {
   return response.json();
 }
 
+export type Site = {
+  id: string;
+  name: string;
+  domain: string;
+  created_at: string;
+  vapid_public_key?: string;
+};
+
+export type Campaign = {
+  id: string;
+  name: string;
+  title: string;
+  status: string;
+  created_at: string;
+  scheduled_at?: string | null;
+};
+
 export const api = {
   register: (email: string, password: string, accountName: string) =>
     request("/auth/register", {
@@ -37,7 +54,7 @@ export const api = {
 
   me: () => request("/auth/me"),
 
-  listSites: () => request("/sites"),
+  listSites: (): Promise<{ items: Site[] }> => request("/sites"),
 
   createSite: (payload: { name: string; domain: string; defaultIcon?: string; defaultTtl?: number }) =>
     request("/sites", {
@@ -45,5 +62,50 @@ export const api = {
       body: JSON.stringify(payload)
     }),
 
-  getSite: (siteId: string) => request(`/sites/${siteId}`)
+  getSite: (siteId: string): Promise<Site> => request(`/sites/${siteId}`),
+
+  listCampaigns: (siteId: string, cursor?: string): Promise<{ items: Campaign[]; nextCursor?: string | null }> =>
+    request(`/sites/${siteId}/campaigns${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`),
+
+  createCampaign: (
+    siteId: string,
+    payload: {
+      name: string;
+      title: string;
+      body: string;
+      url: string;
+      image?: string;
+      icon?: string;
+      ttl?: number;
+      scheduleAt?: string | null;
+      segmentId?: string | null;
+    }
+  ): Promise<Campaign> =>
+    request(`/sites/${siteId}/campaigns`, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    }),
+
+  sendCampaign: (siteId: string, campaignId: string) =>
+    request(`/sites/${siteId}/campaigns/${campaignId}/send`, {
+      method: "POST"
+    }),
+
+  cancelCampaign: (siteId: string, campaignId: string) =>
+    request(`/sites/${siteId}/campaigns/${campaignId}/cancel`, {
+      method: "POST"
+    }),
+
+  getCampaignMetrics: (
+    siteId: string,
+    campaignId: string
+  ): Promise<{
+    targeted: number;
+    sent: number;
+    delivered: number;
+    failed: number;
+    shown: number;
+    clicks: number;
+    ctr: number;
+  }> => request(`/sites/${siteId}/campaigns/${campaignId}/metrics`)
 };
