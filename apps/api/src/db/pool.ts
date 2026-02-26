@@ -1,4 +1,9 @@
 import { Pool } from "pg";
 import { env } from "../config/env";
 
-export const db = new Pool({ connectionString: env.databaseUrl });
+const useSsl = env.databaseUrl.includes("render.com");
+
+export const db = new Pool({
+  connectionString: env.databaseUrl,
+  ssl: useSsl ? { rejectUnauthorized: false } : undefined
+});
