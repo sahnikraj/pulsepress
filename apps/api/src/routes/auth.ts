@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/pool";
+import { ensureDatabaseSchema } from "../db/bootstrap";
 import { requireAuth } from "../middleware/auth";
 import { loginSchema, registerSchema } from "../validators/auth";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../utils/jwt";
@@ -15,6 +16,7 @@ authRouter.post("/register", async (req, res) => {
   }
 
   const { email, password, accountName } = parsed.data;
+  await ensureDatabaseSchema();
   const passwordHash = await bcrypt.hash(password, 12);
 
   const userId = uuidv4();
@@ -64,6 +66,7 @@ authRouter.post("/login", async (req, res) => {
   }
 
   const { email, password } = parsed.data;
+  await ensureDatabaseSchema();
   const userRes = await db.query(
     `SELECT u.id, u.email, u.password_hash, am.account_id
      FROM users u
@@ -105,6 +108,7 @@ authRouter.post("/refresh", async (req, res) => {
   }
 
   try {
+    await ensureDatabaseSchema();
     const payload = verifyRefreshToken(token);
     const existing = await db.query(
       `SELECT id FROM refresh_tokens
