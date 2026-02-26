@@ -1,6 +1,5 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { createHash } from "node:crypto";
 import { v4 as uuidv4 } from "uuid";
 import { db } from "../db/pool";
 import { requireAuth } from "../middleware/auth";
@@ -8,10 +7,6 @@ import { loginSchema, registerSchema } from "../validators/auth";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../utils/jwt";
 
 export const authRouter = Router();
-
-function hashToken(token: string) {
-  return createHash("sha256").update(token).digest("hex");
-}
 
 authRouter.post("/register", async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
@@ -44,11 +39,10 @@ authRouter.post("/register", async (req, res) => {
     );
 
     const refreshToken = signRefreshToken({ userId, accountId, email });
-    const refreshTokenHash = hashToken(refreshToken);
     await db.query(
       `INSERT INTO refresh_tokens (id, user_id, account_id, token_hash, expires_at)
-       VALUES ($1, $2, $3, decode($4, 'hex'), now() + interval '30 days')`,
-      [uuidv4(), userId, accountId, refreshTokenHash]
+       VALUES ($1, $2, $3, digest($4, 'sha256'), now() + interval '30 days')`,
+      [uuidv4(), userId, accountId, refreshToken]
     );
 
     await db.query("COMMIT");
@@ -91,12 +85,11 @@ authRouter.post("/login", async (req, res) => {
 
   const payload = { userId: user.id, accountId: user.account_id, email: user.email };
   const refreshToken = signRefreshToken(payload);
-  const refreshTokenHash = hashToken(refreshToken);
 
   await db.query(
     `INSERT INTO refresh_tokens (id, user_id, account_id, token_hash, expires_at)
-     VALUES ($1, $2, $3, decode($4, 'hex'), now() + interval '30 days')`,
-    [uuidv4(), user.id, user.account_id, refreshTokenHash]
+     VALUES ($1, $2, $3, digest($4, 'sha256'), now() + interval '30 days')`,
+    [uuidv4(), user.id, user.account_id, refreshToken]
   );
 
   return res.json({
@@ -113,14 +106,13 @@ authRouter.post("/refresh", async (req, res) => {
 
   try {
     const payload = verifyRefreshToken(token);
-    const tokenHash = hashToken(token);
     const existing = await db.query(
       `SELECT id FROM refresh_tokens
-       WHERE token_hash = decode($1, 'hex')
+       WHERE token_hash = digest($1, 'sha256')
          AND revoked_at IS NULL
          AND expires_at > now()
        LIMIT 1`,
-      [tokenHash]
+      [token]
     );
 
     if (!existing.rowCount) {
@@ -135,11 +127,10 @@ authRouter.post("/refresh", async (req, res) => {
     );
 
     const newRefresh = signRefreshToken(payload);
-    const newRefreshHash = hashToken(newRefresh);
     await db.query(
       `INSERT INTO refresh_tokens (id, user_id, account_id, token_hash, expires_at)
-       VALUES ($1, $2, $3, decode($4, 'hex'), now() + interval '30 days')`,
-      [uuidv4(), payload.userId, payload.accountId, newRefreshHash]
+       VALUES ($1, $2, $3, digest($4, 'sha256'), now() + interval '30 days')`,
+      [uuidv4(), payload.userId, payload.accountId, newRefresh]
     );
 
     return res.json({
