@@ -21,8 +21,25 @@ async function runBootstrap() {
     return;
   }
 
-  const initPath = path.join(process.cwd(), "database", "migrations", "001_init.sql");
-  const sql = await fs.readFile(initPath, "utf8");
+  const candidates = [
+    path.join(process.cwd(), "database", "migrations", "001_init.sql"),
+    path.join(process.cwd(), "..", "..", "database", "migrations", "001_init.sql")
+  ];
+
+  let sql: string | null = null;
+  for (const candidate of candidates) {
+    try {
+      sql = await fs.readFile(candidate, "utf8");
+      break;
+    } catch {
+      // try next path candidate
+    }
+  }
+
+  if (!sql) {
+    throw new Error("Missing 001_init.sql migration file");
+  }
+
   await db.query(makeInitMigrationPortable(sql));
 }
 
