@@ -1,17 +1,6 @@
-import fs from "node:fs/promises";
-import path from "node:path";
 import { db } from "./pool";
 
 let bootstrapPromise: Promise<void> | null = null;
-
-function makeInitMigrationPortable(sql: string) {
-  return sql
-    .replace(/CREATE EXTENSION IF NOT EXISTS pgcrypto;?/gi, "")
-    .replace(/DEFAULT gen_random_uuid\(\)/gi, "")
-    .replace(/CREATE TABLE\s+([a-z_]+)/gi, "CREATE TABLE IF NOT EXISTS $1")
-    .replace(/CREATE UNIQUE INDEX\s+([a-z_]+)/gi, "CREATE UNIQUE INDEX IF NOT EXISTS $1")
-    .replace(/CREATE INDEX\s+([a-z_]+)/gi, "CREATE INDEX IF NOT EXISTS $1");
-}
 
 async function runBootstrap() {
   const exists = await db.query<{ exists: string | null }>(
@@ -21,26 +10,42 @@ async function runBootstrap() {
     return;
   }
 
-  const candidates = [
-    path.join(process.cwd(), "database", "migrations", "001_init.sql"),
-    path.join(process.cwd(), "..", "..", "database", "migrations", "001_init.sql")
-  ];
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id UUID PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
 
-  let sql: string | null = null;
-  for (const candidate of candidates) {
-    try {
-      sql = await fs.readFile(candidate, "utf8");
-      break;
-    } catch {
-      // try next path candidate
-    }
-  }
+    CREATE TABLE IF NOT EXISTS accounts (
+      id UUID PRIMARY KEY,
+      name TEXT NOT NULL,
+      owner_user_id UUID NOT NULL REFERENCES users(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
 
-  if (!sql) {
-    throw new Error("Missing 001_init.sql migration file");
-  }
+    CREATE TABLE IF NOT EXISTS account_memberships (
+      id UUID PRIMARY KEY,
+      account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL CHECK (role IN ('owner', 'admin', 'editor', 'analyst')),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE (account_id, user_id)
+    );
 
-  await db.query(makeInitMigrationPortable(sql));
+    CREATE TABLE IF NOT EXISTS refresh_tokens (
+      id UUID PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      token_hash BYTEA NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      revoked_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
 }
 
 export async function ensureDatabaseSchema() {
